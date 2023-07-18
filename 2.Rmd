@@ -1,0 +1,199 @@
+---
+title: "Comparison of multiple distributions"
+author: "Muhammad Farhan Tanvir"
+date: "2023-05-12"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+rm(list = ls())
+```
+
+
+
+
+```{r}
+# Import the libraries
+library(ggplot2)
+library(TukeyC)
+library(cowplot)
+library(dplyr)
+library (car)
+```
+
+
+
+
+
+
+
+```{r}
+# Read the data set
+babies <- read.csv("babies.csv")
+
+missing_values <- sum(is.na(babies))
+
+print(paste("Total missing values:", missing_values))
+
+cbind(lapply(lapply(babies, is.na),sum))
+
+# remove rows with missing values and remove variable x 
+df_babies <- babies[complete.cases(babies), -1]
+```
+
+
+
+
+
+```{r}
+# Task 1
+
+# Convert the "smoke" variable to a factor
+categories_smoke <- factor(df_babies$smoke, labels = c("Never", "Smokes now", "Until current pregnancy", "Once did, not now", "Unknown"))
+
+df_babies <- mutate(df_babies, categories_smoke)
+
+
+
+```
+
+
+
+
+
+
+```{r}
+# Descriptive analysis
+# Measure of central tendency for smoking categories
+df_babies %>% group_by(categories_smoke) %>% summarise(count = n(), mean(wt), median(wt), sd(wt), var(wt), IQR(wt))
+
+
+
+```
+
+
+
+```{r}
+
+# Measure of central tendency for babies weight
+df_babies %>% summarise(count = n(), mean(wt), median(wt), sd(wt), var(wt), IQR(wt))
+
+
+```
+
+
+
+
+
+```{r}
+
+
+# Subset the data 
+Subset_1 <- subset(df_babies, smoke == 0)
+Subset_2 <- subset(df_babies, smoke == 1)
+Subset_3 <- subset(df_babies, smoke == 2)
+Subset_4 <- subset(df_babies, smoke == 3)
+Subset_5 <- subset(df_babies, smoke == 9)
+
+
+```
+
+
+```{r}
+# Task 2 QQplots for checking Normality 
+
+
+# Create QQ plots
+plot1 <- ggplot(Subset_1, aes(sample = wt)) + stat_qq() + stat_qq_line(col = "blue") + ggtitle("QQ Plot - Never smoke") 
+plot2 <- ggplot(Subset_2, aes(sample = wt)) + stat_qq() + stat_qq_line(col = "blue") + ggtitle("QQ Plot - Smokes now")
+plot3 <- ggplot(Subset_3, aes(sample = wt)) + stat_qq() + stat_qq_line(col = "blue") + ggtitle("QQ Plot - Until current pregnancy")
+plot4 <- ggplot(Subset_4, aes(sample = wt)) + stat_qq() + stat_qq_line(col = "blue") + ggtitle("QQ Plot - Once did, not now")
+plot5 <- ggplot(Subset_5, aes(sample = wt)) + stat_qq() + stat_qq_line(col = "blue") + ggtitle("QQ Plot - Unknown")
+
+# Merge the plots
+Merge <-  plot_grid(plot1, plot2, plot3, plot4, plot5, ncol = 2)
+Merge
+```
+
+
+
+
+
+
+```{r}
+# Task 2 Assumptions of the One Way Anova for Homogeneity of Variance
+
+Assumptions <- leveneTest(df_babies$wt, df_babies$categories_smoke)
+Assumptions
+
+```
+
+
+
+
+```{r}
+# Task 2 global test
+
+global_test <- aov(df_babies$wt ~ df_babies$categories_smoke, df_babies)
+summary(global_test)
+
+```
+
+
+
+
+
+```{r}
+# Task 3 
+#Non adjustment
+Without <- pairwise.t.test(df_babies$wt, df_babies$categories, p.adj = "none", pool.sd = TRUE, alternative = "two.sided", var.equal = TRUE)
+Without
+```
+
+
+```{r}
+# Task 3 
+#adjusted with bonferroni
+bonferroni <- pairwise.t.test(df_babies$wt, df_babies$categories, pool.sd = TRUE, p.adjust.method = "bonferroni", alternative = "two.sided", var.equal = TRUE)
+bonferroni
+
+```
+
+
+```{r}
+# Task 3 
+# #adjusted with tukeys test
+
+tukey <- TukeyHSD(global_test)
+tukey
+```
+
+
+```{r}
+# Task 3 
+# Calculate Tukey's confidence intervals
+tukey_confidence_intervals <- confint(global_test, level = 0.95)
+tukey_confidence_intervals
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
